@@ -1,4 +1,5 @@
 import "leaflet/dist/leaflet.css";
+import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
 export const metadata = {

@@ -40,6 +40,7 @@ Lernende der Übung, die den Ablauf Planen → Bauen → Testen → Deployen ein
 | B3 | Tag/Nacht-Anzeige über das Feld `visibility`. | | Offen |
 | B4 | Astronauten-Liste aus `astros.json`. | Schwerste Aufgabe: Die Quelle ist HTTP, daher wird ein Proxy benötigt (Tipp: Vercel Function). Das widerspricht dem Muss-Scope "kein Backend" nur für diese Bonus-Aufgabe. | Offen |
 | B5 | Aktuelle Position des Benutzeres und Entfernung zur ISS | Über die Browser geolocation die aktuelle Position ermitteln und eintragen, zusätzlich die Entfernung zur ISS ermitteln und anzeigen. Details: [Feature-Spec B5](features/B5_eigener-standort-und-entfernung.md) | ✅ Umgesetzt (07.10.2026): P0 ✅ · P1 ✅ · P2 offen |
+| B6 | Fun with Flags: Flagge des überflogenen Landes anzeigen | Wie ein Schiff die Gastlandflagge setzt. Über dem Meer die Heimatflaggen der ISS-Partner, optional Countdown zum nächsten Land. Details: [Feature-Spec B6](features/B6_fun-with-flags.md) | ✅ Umgesetzt (07.10.2026): P0 ✅ · P1 ✅ · P2 offen |
 
 ## 5. Nicht-funktionale Anforderungen und Einschränkungen
 

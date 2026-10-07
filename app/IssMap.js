@@ -2,14 +2,27 @@
 
 import L from "leaflet";
 import { useEffect, useRef } from "react";
+import { hasFlag } from "./Flag";
 
 // Eigenes Icon statt des Leaflet-Standardmarkers: dessen Bildpfade findet der Bundler nicht.
-const issIcon = L.divIcon({
-  className: "iss-icon",
-  html: '<span aria-hidden="true">🛰️</span>',
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
-});
+// Über einem Land trägt die ISS dessen Flagge wie ein Schiff die Gastlandflagge (B6 P1-2).
+const issIcons = new Map();
+function issIcon(countryCode) {
+  const flagCode = countryCode && hasFlag(countryCode) ? countryCode.toLowerCase() : null;
+  if (!issIcons.has(flagCode)) {
+    const flag = flagCode ? `<span class="fi fi-${flagCode} iss-flag"></span>` : "";
+    issIcons.set(
+      flagCode,
+      L.divIcon({
+        className: "iss-icon",
+        html: `<span aria-hidden="true">🛰️</span>${flag}`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      }),
+    );
+  }
+  return issIcons.get(flagCode);
+}
 
 const userIcon = L.divIcon({
   className: "user-icon",
@@ -91,6 +104,7 @@ export default function IssMap({
   onShowTrailChange,
   userLocation,
   userLocationLabel,
+  countryCode,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -103,14 +117,14 @@ export default function IssMap({
   const userMarkerRef = useRef(null);
   const userLinkRef = useRef(null);
   const fittedLocationRef = useRef(null);
-  const dataRef = useRef({ position, trail, userLocation, userLocationLabel });
-  dataRef.current = { position, trail, userLocation, userLocationLabel };
+  const dataRef = useRef({ position, trail, userLocation, userLocationLabel, countryCode });
+  dataRef.current = { position, trail, userLocation, userLocationLabel, countryCode };
 
   // Zeichnet Marker und Spur in der Weltkopie, die der Kartenmitte am nächsten liegt.
   const drawRef = useRef(() => {});
   drawRef.current = () => {
     const map = mapRef.current;
-    const { position, trail, userLocation, userLocationLabel } = dataRef.current;
+    const { position, trail, userLocation, userLocationLabel, countryCode } = dataRef.current;
     if (!map || !position) return;
 
     const isFirst = !markerRef.current;
@@ -119,7 +133,7 @@ export default function IssMap({
 
     if (isFirst) {
       markerRef.current = L.marker(latLng, {
-        icon: issIcon,
+        icon: issIcon(countryCode),
         title: "ISS",
         keyboard: false,
         zIndexOffset: 1000, // immer über dem Nutzer-Marker
@@ -127,6 +141,8 @@ export default function IssMap({
       map.setView(latLng, 3);
     } else {
       markerRef.current.setLatLng(latLng);
+      const icon = issIcon(countryCode);
+      if (markerRef.current.options.icon !== icon) markerRef.current.setIcon(icon);
     }
 
     const segments = buildTrailSegments(trail, latLng[1]);
@@ -204,7 +220,7 @@ export default function IssMap({
 
   useEffect(() => {
     drawRef.current();
-  }, [position, trail, userLocation]);
+  }, [position, trail, userLocation, countryCode]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -1,10 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Flag, { countryName } from "./Flag";
 import { distanceToIssKm } from "./geo";
 
 const API_URL = "https://api.wheretheiss.at/v1/satellites/25544";
+const COORDINATES_URL = "https://api.wheretheiss.at/v1/coordinates";
 const POLL_INTERVAL_MS = 5000;
 const REQUEST_TIMEOUT_MS = 4000;
 
@@ -12,6 +14,14 @@ const REQUEST_TIMEOUT_MS = 4000;
 const TRAIL_DURATION_MS = 10 * 60 * 1000;
 const PREFILL_POINTS = 10;
 const SHOW_TRAIL_KEY = "iss-tracker:showTrail";
+
+// Flaggen (B6): Countdown zum nächsten Land höchstens einmal pro Minute, Stützpunkte für 15 Minuten.
+// Anfrage-Budget (Limit 350 je 5 Min.): Position 60 + Land 60 + Countdown max. 55.
+const LOOKAHEAD_INTERVAL_MS = 60 * 1000;
+const LOOKAHEAD_POINTS = 10;
+const LOOKAHEAD_STEP_S = 90;
+// Heimatflaggen der ISS-Partner; Europa erscheint als Text "ESA", weil die ESA keine EU-Einrichtung ist.
+const HOME_FLAGS = ["us", "ru", "jp", "ca"];
 
 // Eigener Standort (B5): einmalige Abfrage, wird weder gespeichert noch gesendet.
 const GEOLOCATION_OPTIONS = { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 };
@@ -67,6 +77,14 @@ async function fetchJson(url) {
   return response.json();
 }
 
+// Land unter einer Position als ISO-Code (z. B. "DE"), null über internationalen Gewässern ("??").
+async function fetchCountryCode({ latitude, longitude }) {
+  const data = await fetchJson(`${COORDINATES_URL}/${latitude.toFixed(2)},${longitude.toFixed(2)}`);
+  const code = data?.country_code;
+  if (typeof code !== "string") throw new Error("Unerwartete Antwort");
+  return /^[A-Z]{2}$/i.test(code) ? code.toUpperCase() : null;
+}
+
 // Führt Punkte zusammen: nach Zeit sortiert, ohne doppelte Zeitstempel, nur die letzten 10 Minuten.
 // Maßstab ist der neueste API-Zeitstempel, nicht die Uhr des Browsers.
 function mergeTrail(trail, points) {
@@ -89,6 +107,11 @@ export default function Home() {
   const [position, setPosition] = useState(null);
   const [error, setError] = useState(null);
   const [trail, setTrail] = useState([]);
+  // Land unter der ISS (B6): { code: "DE" | null, checkedAt, stale }
+  const [country, setCountry] = useState(null);
+  const [nextCountry, setNextCountry] = useState(null);
+  // Länderwechsel als Ereignisse, Grundlage für das spätere Flaggen-Logbuch (P2-1).
+  const countryLogRef = useRef([]);
   const [showTrail, setShowTrail] = useState(() =>
     typeof window === "undefined" ? true : readShowTrail(),
   );
@@ -120,6 +143,50 @@ export default function Home() {
       fresh ? { ...GEOLOCATION_OPTIONS, maximumAge: 0 } : GEOLOCATION_OPTIONS,
     );
   }
+
+  // Countdown (B6 P1-1): nur über internationalen Gewässern, höchstens einmal pro Minute.
+  const overSea = country !== null && country.code === null;
+  useEffect(() => {
+    if (!overSea) {
+      setNextCountry(null);
+      return;
+    }
+    let cancelled = false;
+    let timer;
+
+    async function lookahead() {
+      try {
+        const now = Math.floor(Date.now() / 1000);
+        const timestamps = Array.from(
+          { length: LOOKAHEAD_POINTS },
+          (_, i) => now + (i + 1) * LOOKAHEAD_STEP_S,
+        );
+        const data = await fetchJson(`${API_URL}/positions?timestamps=${timestamps.join(",")}&units=kilometers`);
+        let found = { code: null };
+        // Nacheinander abfragen und beim ersten Land aufhören, das schont das Anfragelimit.
+        for (const point of data.map(toPosition)) {
+          const code = await fetchCountryCode(point);
+          if (cancelled) return;
+          if (code) {
+            // Die Grenze liegt zwischen zwei Stützpunkten, daher die Mitte als Schätzung.
+            found = { code, eta: point.timestamp - (LOOKAHEAD_STEP_S * 1000) / 2 };
+            break;
+          }
+        }
+        if (!cancelled) setNextCountry(found);
+      } catch (err) {
+        if (!cancelled) console.warn("Nächstes Land konnte nicht ermittelt werden:", err);
+      } finally {
+        if (!cancelled) timer = setTimeout(lookahead, LOOKAHEAD_INTERVAL_MS);
+      }
+    }
+
+    lookahead();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [overSea]);
 
   const distanceKm = position && userLocation ? distanceToIssKm(userLocation, position) : null;
 
@@ -168,6 +235,20 @@ export default function Home() {
         setPosition(current);
         setTrail((prev) => mergeTrail(prev, [current]));
         setError(null);
+
+        // Land erst nach der Position abfragen (nacheinander, nicht parallel). Ein Fehler hier
+        // lässt die letzte Anzeige stehen und beeinflusst das Positions-Polling nicht.
+        try {
+          const code = await fetchCountryCode(current);
+          if (cancelled) return;
+          const log = countryLogRef.current;
+          if (log.length === 0 || log.at(-1).code !== code) log.push({ code, enteredAt: Date.now() });
+          setCountry({ code, checkedAt: Date.now(), stale: false });
+        } catch (err) {
+          if (cancelled) return;
+          console.warn("Land konnte nicht ermittelt werden:", err);
+          setCountry((prev) => prev && { ...prev, stale: true });
+        }
       } catch (err) {
         if (cancelled) return;
         console.warn("ISS-Position konnte nicht geladen werden:", err);
@@ -190,6 +271,8 @@ export default function Home() {
         <h1>ISS-Live-Tracker</h1>
         <p className="subtitle">Aktuelle Position der Internationalen Raumstation</p>
       </header>
+
+      <CountryLine country={country} nextCountry={nextCountry} />
 
       {error && (
         <div className="notice" role="alert">
@@ -224,6 +307,7 @@ export default function Home() {
           showTrail={showTrail}
           onShowTrailChange={handleShowTrailChange}
           userLocation={userLocation}
+          countryCode={country?.code ?? null}
           userLocationLabel={userLocation && formatUserLocation(userLocation)}
         />
       </div>
@@ -291,5 +375,52 @@ function DistanceStat({ status, distanceKm, userLocation, onRequest }) {
       <span className="stat-label">Entfernung zur ISS</span>
       {content}
     </div>
+  );
+}
+
+function CountryLine({ country, nextCountry }) {
+  let content;
+  if (!country) {
+    content = <span className="country-muted">wird ermittelt …</span>;
+  } else if (country.code) {
+    content = (
+      <span className="country-current">
+        <Flag code={country.code} /> {countryName(country.code)}
+      </span>
+    );
+  } else {
+    content = (
+      <>
+        <span className="country-current">Internationale Gewässer</span>
+        <span className="country-home" title="Heimatflaggen der ISS-Partner">
+          {HOME_FLAGS.map((code) => (
+            <Flag key={code} code={code} />
+          ))}
+          <span className="country-esa">ESA</span>
+        </span>
+      </>
+    );
+  }
+
+  return (
+    <section className="country" aria-label="Überflogenes Land">
+      <span className="country-label">Gerade über:</span>
+      {content}
+      {country?.stale && (
+        <span className="country-muted">(Stand: {timeFormat.format(country.checkedAt)} Uhr)</span>
+      )}
+      {country && !country.code && nextCountry && <NextCountry next={nextCountry} />}
+    </section>
+  );
+}
+
+function NextCountry({ next }) {
+  if (!next.code) return <span className="country-next">Kein Land in den nächsten 15 Min.</span>;
+  const minutes = Math.round((next.eta - Date.now()) / 60000);
+  const when = minutes < 1 ? "in weniger als 1 Min." : `in ca. ${minutes} Min.`;
+  return (
+    <span className="country-next">
+      Nächstes Gastland: <Flag code={next.code} /> {countryName(next.code)} {when}
+    </span>
   );
 }

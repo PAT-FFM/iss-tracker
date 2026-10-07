@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ISS-Live-Tracker als Übung im Bildungsurlaub **Agentic Coding** (Oktober 2026): eine reine Frontend-App, die die ISS live auf einer Leaflet-Karte zeigt und öffentlich per HTTPS deployt wird. Maßgeblich ist `ai_docs/PRD.md` (Anforderungen F1–F4, Bonus B1–B4, Akzeptanzkriterien), die Original-Aufgabe liegt in `ai_docs/Uebung_ISS-Tracker.pdf`. Vor Änderungen die PRD lesen.
 
-Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 sowie die Bonus-Aufgaben B1 und B5 sind umgesetzt. Feature-Specs liegen in `ai_docs/features/`. Neue Features dort zuerst spezifizieren.
+Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 sowie die Bonus-Aufgaben B1, B5 und B6 sind umgesetzt. Feature-Specs liegen in `ai_docs/features/`. Neue Features dort zuerst spezifizieren.
 
 ## Befehle
 
@@ -40,6 +40,8 @@ Es gibt keinen Linter und keine automatisierten Tests. Die manuelle Testanleitun
 - **Datumsgrenze:** Leaflet zeichnet Längen über ±180° in der Nachbarkopie der Welt. `IssMap.js` legt Marker und Spur per `wrapNear` in die Kopie, die der Kartenmitte am nächsten liegt, und zeichnet nach jedem `moveend` neu. Neue Kartenebenen (z. B. für B2/B3) müssen das genauso machen, sonst springen sie beim Überflug über 180° ans andere Kartenende.
 - **`page.js` darf nur die Next.js-Seitenexporte haben** (`default`, `metadata` usw.). Hilfsfunktionen, die mehrere Dateien brauchen, gehören in eigene Module wie `app/geo.js` (reine Geometrie, z. B. `distanceToIssKm`).
 - **Eigener Standort (B5):** wird nie gespeichert oder gesendet und nur auf 2 Nachkommastellen gerundet angezeigt. Nutzer-Marker und Verbindungslinie werden in `drawRef` mitgezeichnet.
+- **Flaggen (B6):** `app/Flag.js` enthält die Liste der Codes, für die `flag-icons` eine Flagge hat (aus `node_modules/flag-icons/flags/4x3` erzeugt), und `countryName` über `Intl.DisplayNames`. Nach einem Update von `flag-icons` die Liste neu erzeugen. Die Länderabfrage läuft in `poll()` nach der Position, nacheinander statt parallel.
+- **Anfragelimit:** 350 Anfragen pro 5 Minuten **pro IP**. Ein Tab braucht ca. 120–175 davon. Bei vielen Playwright-Läufen mit echten Daten antwortet die API mit 429. In Tests deshalb `page.route` mit Testdaten verwenden, Browser-Kontexte immer schließen (auch nach Fehlern) und keinen Tab mit echten Daten nebenher laufen lassen.
 - **Schalter-Control:** `createTogglesControl` in `IssMap.js` ist der gemeinsame Kasten für Ein/Aus-Schalter in der Karte. B2 („Karte folgt“) gehört dort hinein.
 - **React StrictMode** mountet Effekte im Dev-Modus doppelt. Der Karten-Effekt muss deshalb im Cleanup `map.remove()` aufrufen, sonst meldet Leaflet „Map container is already initialized“.
 - **Deployment:** Empfohlen ist Vercel (`npx vercel --prod`). GitHub Pages geht nur mit statischem Export (`output: 'export'`). Dann funktionieren keine Route Handler, B4 fällt also weg.

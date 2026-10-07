@@ -63,6 +63,91 @@ a {
   color: var(--muted);
 }
 
+/* Länderzeile (B6): Zeile 1 Land bzw. Meer mit Heimatflaggen, Zeile 2 der Countdown.
+   Die Höhe ist fest reserviert, damit der Wechsel Land/Meer das Layout darunter nicht verschiebt. */
+.country {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  gap: 4px 10px;
+  min-height: 66px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.country-label {
+  color: var(--muted);
+}
+
+.country-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.country-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.country-esa {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+
+.country-next,
+.country-muted {
+  color: var(--muted);
+}
+
+/* Eigene Zeile, bricht nie um: lange Ländernamen werden mit "…" gekürzt. */
+.country-next {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.country-next .flag {
+  margin: 0 2px;
+  vertical-align: -2px;
+}
+
+/* Schmal: Label, Land, Heimatflaggen und Countdown je in einer eigenen Zeile. */
+@media (max-width: 640px) {
+  .country {
+    min-height: 126px;
+  }
+
+  .country-label,
+  .country-home {
+    flex-basis: 100%;
+  }
+
+  .country-label {
+    font-size: 0.8rem;
+  }
+}
+
+.flag {
+  width: 1.5em;
+  line-height: 1em;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
 .notice {
   padding: 10px 14px;
   border: 1px solid var(--warn-border);
@@ -163,6 +248,17 @@ a {
   line-height: 36px;
   text-align: center;
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+}
+
+/* Gastlandflagge am ISS-Marker, oben rechts wie an einem Mast. */
+.iss-flag {
+  position: absolute;
+  top: -10px;
+  right: -16px;
+  width: 22px;
+  height: 16.5px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .user-icon {

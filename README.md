@@ -40,7 +40,12 @@ Dann <http://localhost:3000> im Browser öffnen. Ist Port 3000 belegt, nennt Nex
 | **B5** Entfernung | „Mein Standort“ klicken und erlauben | Entfernung in km (ändert sich alle 5 Sekunden), gerundeter Standort (2 Nachkommastellen), blauer Punkt plus gestrichelte Linie zur ISS. Die Karte zeigt einmalig beide |
 | **B5** Abgelehnt | Im Erlaubnisdialog „Blockieren“ wählen | Hinweis „Standortzugriff abgelehnt …“ in der Kachel, sonst läuft alles normal. Zum Zurücksetzen auf das Schloss-Symbol in der Adressleiste klicken → Standort erlauben |
 | **B5** Anderer Ort | DevTools → ⋮ → **More tools** → **Sensors** → Location z. B. „Tokyo“ wählen, dann „Standort aktualisieren“ klicken | Standort, Entfernung, Marker und Linie springen zum neuen Ort |
+| **B6** Gastlandflagge | Seite öffnen und die Zeile „Gerade über:“ ansehen | Über Land: Flagge und deutscher Name, dieselbe Flagge klein am ISS-Marker. Über dem Meer: „Internationale Gewässer“ mit den Flaggen von USA, Russland, Japan, Kanada und „ESA“ |
+| **B6** Countdown | Abwarten, bis die ISS über dem Meer ist | Zweite Zeile „Nächstes Gastland: [Flagge] … in ca. X Min.“ oder „Kein Land in den nächsten 15 Min.“. Beim Wechsel Land ↔ Meer springt das Layout darunter nicht |
+| **B6** Länderabfrage fällt aus | DevTools → **Network** → eine Anfrage `coordinates/…` blockieren (**Block request URL** mit `*coordinates*`) | Die Flagge bleibt mit „(Stand: hh:mm:ss Uhr)“ stehen, kein orangefarbener Hinweis, Position und Karte laufen weiter |
 | HTTPS / Mixed Content | DevTools → **Console** | Kein Mixed-Content-Fehler. Im Tab **Network** laufen alle Anfragen über `https://` (außer `localhost` selbst) |
+
+**Anfragelimit:** Die API erlaubt 350 Anfragen pro 5 Minuten **pro IP-Adresse**. Ein offener Tab braucht mit B6 ca. 120–175 davon. Wer viele Tabs offen hat oder im selben WLAN wie andere Kursteilnehmer testet, bekommt sonst schnell `429 Too Many Requests`. Die App zeigt dann den Hinweis aus F4. Nicht benötigte Tabs schließen.
 
 Während eines simulierten Ausfalls sind Fehlermeldungen in der Konsole normal (fehlgeschlagene Anfrage und die Warnung „ISS-Position konnte nicht geladen werden“).
 
