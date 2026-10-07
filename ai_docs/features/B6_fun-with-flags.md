@@ -14,11 +14,13 @@ Stand: 07.10.2026
 | P0-4 | Robustheit und Anfragelimit | ✅ Umgesetzt | Playwright: Länderabfrage blockiert → „(Stand: …)“, kein Banner, Polling läuft. Echte 429-Antworten abgefangen |
 | P1-1 | Countdown bis zum nächsten Gastland | ✅ Umgesetzt | Playwright mit Testdaten: „Brasilien in ca. 5 Min.“ nach 4 Abfragen, „Kein Land in den nächsten 15 Min.“ |
 | P1-2 | Flagge am ISS-Marker | ✅ Umgesetzt | Playwright: Flagge über Land, keine über dem Meer |
+| P1-3 | Festes Raster für den Countdown | ✅ Umgesetzt | Playwright mit Testdaten: zwei Läufe im Abstand von 60 s mit identischen Zeitpunkten (Vielfache von 90 s) und gleichem Ergebnis |
 | P2-1 | Flaggen-Logbuch | ⏳ Offen | Vorbereitet: Länderwechsel werden in `countryLogRef` erfasst |
 | P2-2 | Länderwechsel als kurze Animation | ⏳ Offen | |
 | P2-3 | Zurückhaltung bei 429 (Backoff) | ⏳ Offen | Neu, siehe „Erkenntnisse aus dem Test“ |
+| P2-4 | Countdown mit lokalen Ländergrenzen | ⏳ Offen | Neu, siehe „Erkenntnisse aus dem Test“ (übersehene Inseln und schmale Länder) |
 
-Alle Abnahmekriterien der umgesetzten Punkte sind lokal geprüft, der Meer-Zustand zusätzlich unter der Live-URL. **Noch offen:** ein beobachteter *echter* Länderwechsel. Bei allen Tests mit echten Daten lag die ISS über dem Meer, Land wurde nur mit Testdaten geprüft.
+Alle Abnahmekriterien der umgesetzten Punkte sind lokal geprüft. Unter der Live-URL mit echten Daten bestätigt: Meer-Zustand mit Heimatflaggen, Land („Russland“) und ein Überflug der Azoren (portugiesische Flagge, vom Nutzer beobachtet). P1-3 ist lokal mit Testdaten geprüft und deployt, live lief der Countdown beim Test nicht, weil die ISS über Land war.
 
 ## Idee
 
@@ -82,13 +84,19 @@ Die Koordinaten „-25,7551° S, 144,2198° O“ sagen den meisten Besuchern nic
 - Die Countdown-Abfragen nutzen höchstens 60 zusätzliche Anfragen pro 5 Minuten, sodass das Gesamtbudget unter 200 von 350 bleibt.
 - Liegt in den nächsten 15 Minuten kein Land, steht dort „Kein Land in den nächsten 15 Min.“.
 - Die Genauigkeit liegt bei ca. ±1 Minute (Raster der Stützpunkte), angezeigt als „ca.“.
+- Bekannte Grenze: Zwischen zwei Stützpunkten liegen ca. 700 km Flugstrecke. Inseln und Länder, die die Bahn auf kürzerer Strecke kreuzen, können übersehen werden. Der Countdown zeigt dann das nächste größere Land. Behebung: P2-4.
 
 **P1-2: Flagge am ISS-Marker.** Die aktuelle Gastlandflagge erscheint klein neben dem 🛰️-Marker auf der Karte, wie eine Flagge am Mast. Über dem Meer erscheint dort keine Flagge.
+
+**P1-3: Festes Raster für den Countdown.** Die Stützpunkte liegen auf festen Zeitpunkten (Vielfache von 90 s seit 1970), nicht relativ zu „jetzt“. So prüfen aufeinanderfolgende Countdown-Abfragen dieselben Punkte der Bahn, und das Ergebnis springt nicht von Minute zu Minute.
+- Alle Zeitstempel der Countdown-Abfrage sind Vielfache von 90.
+- Zwei Abfragen im Abstand von einer Minute nutzen dieselben Zeitpunkte (bis auf die inzwischen vergangenen) und zeigen dasselbe Land.
 
 ### Später (P2)
 
 - **P2-1: Flaggen-Logbuch.** Liste der in dieser Sitzung überflogenen Länder mit Uhrzeit, wie Stempel im Reisepass. Optional mit einem Zähler „Länder heute: 7“. Dafür die Länderwechsel schon in P0 als Ereignisse erfassen (`{ countryCode, enteredAt }`), auch wenn sie noch nicht angezeigt werden.
 - **P2-2: Animation beim Länderwechsel**, z. B. Flagge kurz einblenden oder „hissen“. Mit `prefers-reduced-motion` abschaltbar.
+- **P2-4: Countdown mit lokalen Ländergrenzen.** Grenzdaten mit Inseln mitliefern (z. B. Natural Earth 1:50 Mio., ca. 0,5–1 MB) und die vorausberechnete Bahn alle 5–10 s lokal prüfen (Point-in-Polygon). Das findet auch Inseln wie die Azoren und kostet keine zusätzlichen `/coordinates`-Abfragen. Die Live-Anzeige (P0-1) bleibt bei der API, weil diese auch Hoheitsgewässer kennt. Für die Bahn reichen weiter 10 Positionen pro Minute, dazwischen wird interpoliert.
 - **P2-3: Zurückhaltung bei 429.** Antwortet die API mit 429, sollten Länderabfrage und Countdown für eine Weile pausieren, bevor das Positions-Polling selbst ins Limit läuft.
 
 ## Technische Hinweise
@@ -105,6 +113,9 @@ Die Koordinaten „-25,7551° S, 144,2198° O“ sagen den meisten Besuchern nic
 - **Gemeinsames Anfragelimit pro IP.** Das Limit von 350 Anfragen pro 5 Minuten gilt pro IP-Adresse. Bei den vielen Testläufen von einem Rechner antwortete die API mit **429 Too Many Requests**. Die App blieb stabil (F4-Hinweis bzw. Flagge mit „(Stand: …)“). **Für den Kurs relevant:** Sitzen alle Teilnehmer hinter derselben IP (Schulungs-WLAN), teilen sie sich das Limit. Mit B6 verbraucht jeder offene Tab ca. 120–175 statt 60 Anfragen pro 5 Minuten, ab etwa 2–3 offenen Tabs wird es also knapp. Abhilfe wären P2-3 oder die lokale Länderermittlung (siehe Entscheidungen).
 - **Gemessener Verbrauch:** in 55 Sekunden über dem Meer mit Countdown 12 Positionen, 21 Länderabfragen und 3 `/positions`-Aufrufe (einschließlich der B1-Vorbefüllung). Das entspricht ca. 175 pro 5 Minuten und liegt im geplanten Budget.
 - **Layout:** Eine feste Mindesthöhe allein reichte nicht, weil lange Namen wie „Zentralafrikanische Republik“ umbrachen. Deshalb steht der Countdown immer in einer eigenen Zeile, bricht nie um und kürzt mit „…“.
+- **Countdown übersieht schmale Länder und Inseln (Beobachtung im Echtbetrieb, 07.10.2026).** Die ISS flog über den Atlantik Richtung Europa. Der Countdown wechselte von Minute zu Minute zwischen „Frankreich“ und „Deutschland“, und dass die ISS kurz vor den Azoren war, zeigte er nicht an. Die Live-Anzeige zeigte beim Überflug korrekt kurz die portugiesische Flagge. Ursache: 90 s zwischen den Stützpunkten sind ca. 700 km Flugstrecke. Die Azoren (einige Dutzend km) fallen durch das Raster, und Frankreich wurde je nach Lage des Rasters getroffen oder nicht. Weil das Raster jede Minute bei „jetzt“ neu begann, verschob es sich um 60 s auf der Bahn, daher das Flackern. Mit den Testdaten (nur große Landflächen) war das nicht aufgefallen.
+  - **Behoben (P1-3):** Das Flackern, durch ein Raster an festen Zeitpunkten.
+  - **Bleibt (P2-4):** Lücken zwischen den Stützpunkten werden weiter übersehen, das Ergebnis ist jetzt aber stabil.
 
 ## Erfolgskriterien
 
@@ -123,6 +134,7 @@ Abgestimmt am 07.10.2026 per Auswahl-Wizard.
 | Europa/ESA bei den Heimatflaggen | Text „ESA“ ohne Flagge | EU-Flagge (inhaltlich falsch), Flaggen aller ESA-Staaten (zu lang), Europa weglassen |
 | Länderermittlung | Per API `/coordinates` | Lokal per Point-in-Polygon (keine Hoheitsgewässer, Kleinstaaten fehlen). Bleibt Ausweg, falls das Anfragelimit knapp wird |
 | Priorität nach P0 | Countdown als P1, Logbuch bleibt P2 | Logbuch zuerst, beides als P1 |
+| Countdown übersieht schmale Länder/Inseln (Nachtrag 07.10.2026) | Sofort: festes Raster (P1-3) gegen das Flackern. Später: lokale Ländergrenzen (P2-4) gegen die Lücken | Feineres Raster mit 20 s (bis zu 45 Abfragen pro Minute, zu viel fürs Anfragelimit). Bisektion zwischen letztem Meer- und erstem Land-Punkt (macht den Zeitpunkt genauer, findet aber keine Lücken davor) |
 
 Offene Fragen gibt es keine mehr.
 

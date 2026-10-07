@@ -156,10 +156,12 @@ export default function Home() {
 
     async function lookahead() {
       try {
-        const now = Math.floor(Date.now() / 1000);
+        // Raster an feste Zeitpunkte (Vielfache von 90 s) binden statt an "jetzt". Sonst verschiebt
+        // es sich jede Minute auf der Bahn, und schmale Länder tauchen mal auf und mal nicht auf.
+        const firstSlot = Math.floor(Date.now() / 1000 / LOOKAHEAD_STEP_S) + 1;
         const timestamps = Array.from(
           { length: LOOKAHEAD_POINTS },
-          (_, i) => now + (i + 1) * LOOKAHEAD_STEP_S,
+          (_, i) => (firstSlot + i) * LOOKAHEAD_STEP_S,
         );
         const data = await fetchJson(`${API_URL}/positions?timestamps=${timestamps.join(",")}&units=kilometers`);
         let found = { code: null };
