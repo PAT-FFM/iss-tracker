@@ -59,6 +59,10 @@ Es gibt keinen Linter und keine automatisierten Tests. Die manuelle Testanleitun
 - **Der Stand steht nur im Abschnitt „Umsetzungsstand“** am Anfang der Spec, mit einer Tabelle aller P0/P1/P2-Punkte und dem Nachweis. Keine Statuszeile im Kopf, keine Checkboxen bei den Abnahmekriterien, kein Status in Überschriften.
 - Nach Umsetzung oder Deploy beides nachziehen: den Umsetzungsstand der Spec **und** den groben Status in der PRD. Neue Testschritte in `README.md` unter „Lokal testen“ ergänzen.
 
+## Tool-Log
+
+Ein `PreToolUse`-Hook (`.claude/settings.json` → `.claude/hooks/log-tool-calls.sh`) protokolliert jeden Tool-Aufruf als JSON-Zeile in `logs/tool-calls-JJJJ-MM-TT.jsonl`, mit Zeitstempel, Session, Tool und Eingabe. Texte über 2.000 Zeichen werden gekürzt. Das Skript blockiert nie. Die Logs sind per `.gitignore` vom Repo ausgeschlossen, weil sie Befehle und Dateiinhalte enthalten. Auswerten z. B. mit `jq -r '.tool' logs/*.jsonl | sort | uniq -c`.
+
 ## Git und Deploy
 
 `iss-tracker/` ist ein eigenes Git-Repo, hier wird **committet** (Remote `origin`, Branch `main`). Die Regel „Nichts committen“ aus der übergeordneten `CLAUDE.md` gilt für dieses Repo nicht. Committen und deployen nur auf Anweisung.
