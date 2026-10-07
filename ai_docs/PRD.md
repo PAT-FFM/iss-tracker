@@ -68,10 +68,10 @@ Nach jedem Schritt wird das Ergebnis geprüft, bevor der nächste beginnt.
 
 ## 8. Akzeptanzkriterien ("Fertig, wenn ...")
 
-- [ ] Die Live-URL öffnet sich im Inkognito-Fenster.
-- [ ] Der Marker bewegt sich innerhalb von 10 Sekunden sichtbar.
-- [ ] Die Browser-Konsole zeigt keinen Mixed-Content-Fehler.
-- [ ] Die Live-URL wurde im Chat geteilt.
+- [x] Die Live-URL öffnet sich im Inkognito-Fenster.
+- [x] Der Marker bewegt sich innerhalb von 10 Sekunden sichtbar.
+- [x] Die Browser-Konsole zeigt keinen Mixed-Content-Fehler.
+- [x] Die Live-URL wurde im Chat geteilt.
 
 ## 9. Offene Punkte
 

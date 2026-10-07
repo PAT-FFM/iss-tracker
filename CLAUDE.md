@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ISS-Live-Tracker als Übung im Bildungsurlaub **Agentic Coding** (Oktober 2026): eine reine Frontend-App, die die ISS live auf einer Leaflet-Karte zeigt und öffentlich per HTTPS deployt wird. Maßgeblich ist `ai_docs/PRD.md` (Anforderungen F1–F4, Bonus B1–B4, Akzeptanzkriterien), die Original-Aufgabe liegt in `ai_docs/Uebung_ISS-Tracker.pdf`. Vor Änderungen die PRD lesen.
 
-Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 sind umgesetzt, die Bonus-Aufgaben noch nicht.
+Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 und Bonus B1 sind umgesetzt. Feature-Specs liegen in `ai_docs/features/`. Neue Features dort zuerst spezifizieren.
 
 ## Befehle
 
@@ -37,6 +37,8 @@ Es gibt keinen Linter und keine automatisierten Tests. Die manuelle Testanleitun
 
 - **Kein HTTP, nirgends.** Open Notify (`/iss-now.json`, `/astros.json`) läuft nur über HTTP und wird auf der deployten HTTPS-Seite als Mixed Content blockiert. Die Karte bliebe dann leer. Das gilt auch für Kachel-URLs und Marker-Icons.
 - **Leaflet-Standardmarker:** Die Icon-Pfade von Leaflet funktionieren mit Bundlern nicht (unsichtbarer Marker). Deshalb nutzt `IssMap.js` ein `L.divIcon` mit Emoji. Neue Marker genauso bauen.
+- **Datumsgrenze:** Leaflet zeichnet Längen über ±180° in der Nachbarkopie der Welt. `IssMap.js` legt Marker und Spur per `wrapNear` in die Kopie, die der Kartenmitte am nächsten liegt, und zeichnet nach jedem `moveend` neu. Neue Kartenebenen (z. B. für B2/B3) müssen das genauso machen, sonst springen sie beim Überflug über 180° ans andere Kartenende.
+- **Schalter-Control:** `createTogglesControl` in `IssMap.js` ist der gemeinsame Kasten für Ein/Aus-Schalter in der Karte. B2 („Karte folgt“) gehört dort hinein.
 - **React StrictMode** mountet Effekte im Dev-Modus doppelt. Der Karten-Effekt muss deshalb im Cleanup `map.remove()` aufrufen, sonst meldet Leaflet „Map container is already initialized“.
 - **Deployment:** Empfohlen ist Vercel (`npx vercel --prod`). GitHub Pages geht nur mit statischem Export (`output: 'export'`). Dann funktionieren keine Route Handler, B4 fällt also weg.
 

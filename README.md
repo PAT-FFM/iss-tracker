@@ -33,6 +33,9 @@ Dann <http://localhost:3000> im Browser öffnen. Ist Port 3000 belegt, nennt Nex
 | **F4** API-Ausfall | DevTools öffnen (F12) → **Network** → Zeile `25544` rechts anklicken → **Block request URL**. Alternativ Drosselung auf **Offline** stellen | Nach spätestens 5 Sekunden erscheint ein orangefarbener Hinweis, Karte und letzte Werte bleiben stehen |
 | **F4** Erholung | Sperre wieder aufheben (**Network request blocking** → Haken entfernen bzw. Drosselung zurück auf **No throttling**) | Nach spätestens 5 Sekunden verschwindet der Hinweis und die Werte laufen weiter, ohne neu zu laden |
 | **F4** Kaltstart ohne API | Sperre aktivieren, Seite neu laden | Hinweis „Es liegt noch keine Position vor“, Karte (bei Offline ohne Kacheln) und leere Werte „–“ statt einer leeren Seite |
+| **B1** Spur | Seite öffnen | Sofort eine orangefarbene Linie über ca. 10 Minuten, die am Marker endet und nach hinten verblasst |
+| **B1** Schalter | „Spur anzeigen“ oben rechts in der Karte ab- und anhaken, danach neu laden | Die Spur verschwindet bzw. erscheint vollständig wieder, die Karte bewegt sich dabei nicht. Der Zustand bleibt nach dem Neuladen erhalten |
+| **B1** Vorbefüllung fällt aus | DevTools → **Network** → Anfrage `positions?timestamps=…` blockieren, Seite neu laden | Kein Hinweis, Marker und Werte erscheinen normal, die Spur wächst ab dann alle 5 Sekunden |
 | HTTPS / Mixed Content | DevTools → **Console** | Kein Mixed-Content-Fehler. Im Tab **Network** laufen alle Anfragen über `https://` (außer `localhost` selbst) |
 
 Während eines simulierten Ausfalls sind Fehlermeldungen in der Konsole normal (fehlgeschlagene Anfrage und die Warnung „ISS-Position konnte nicht geladen werden“).

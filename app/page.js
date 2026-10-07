@@ -7,6 +7,11 @@ const API_URL = "https://api.wheretheiss.at/v1/satellites/25544";
 const POLL_INTERVAL_MS = 5000;
 const REQUEST_TIMEOUT_MS = 4000;
 
+// Spur (B1): Länge über den Zeitstempel begrenzt, Vorbefüllung mit max. 10 Zeitstempeln (API-Limit).
+const TRAIL_DURATION_MS = 10 * 60 * 1000;
+const PREFILL_POINTS = 10;
+const SHOW_TRAIL_KEY = "iss-tracker:showTrail";
+
 // Leaflet greift beim Import auf `window` zu und darf deshalb nur im Browser geladen werden.
 const IssMap = dynamic(() => import("./IssMap"), {
   ssr: false,
@@ -28,9 +33,87 @@ function formatLongitude(lon) {
   return `${coordFormat.format(Math.abs(lon))}° ${lon >= 0 ? "O" : "W"}`;
 }
 
+function toPosition(data) {
+  if (!Number.isFinite(data?.latitude) || !Number.isFinite(data?.longitude)) {
+    throw new Error("Unerwartete Antwort");
+  }
+  return {
+    latitude: data.latitude,
+    longitude: data.longitude,
+    altitude: data.altitude,
+    velocity: data.velocity,
+    visibility: data.visibility,
+    timestamp: data.timestamp * 1000,
+  };
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+// Führt Punkte zusammen: nach Zeit sortiert, ohne doppelte Zeitstempel, nur die letzten 10 Minuten.
+// Maßstab ist der neueste API-Zeitstempel, nicht die Uhr des Browsers.
+function mergeTrail(trail, points) {
+  const byTime = new Map(trail.map((p) => [p.timestamp, p]));
+  for (const p of points) byTime.set(p.timestamp, p);
+  const sorted = [...byTime.values()].sort((a, b) => a.timestamp - b.timestamp);
+  const cutoff = sorted.at(-1).timestamp - TRAIL_DURATION_MS;
+  return sorted.filter((p) => p.timestamp >= cutoff);
+}
+
+function readShowTrail() {
+  try {
+    return window.localStorage.getItem(SHOW_TRAIL_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
 export default function Home() {
   const [position, setPosition] = useState(null);
   const [error, setError] = useState(null);
+  const [trail, setTrail] = useState([]);
+  const [showTrail, setShowTrail] = useState(() =>
+    typeof window === "undefined" ? true : readShowTrail(),
+  );
+
+  function handleShowTrailChange(value) {
+    setShowTrail(value);
+    try {
+      window.localStorage.setItem(SHOW_TRAIL_KEY, String(value));
+    } catch {
+      // Ohne localStorage (z. B. gesperrt) gilt der Schalter nur bis zum Neuladen.
+    }
+  }
+
+  // Vorbefüllung: einmalig vergangene Positionen laden. Fehler werden still ignoriert.
+  useEffect(() => {
+    let cancelled = false;
+    const now = Math.floor(Date.now() / 1000);
+    const step = TRAIL_DURATION_MS / 1000 / (PREFILL_POINTS - 1);
+    const timestamps = Array.from({ length: PREFILL_POINTS }, (_, i) =>
+      Math.round(now - TRAIL_DURATION_MS / 1000 + i * step),
+    );
+
+    fetchJson(`${API_URL}/positions?timestamps=${timestamps.join(",")}&units=kilometers`)
+      .then((data) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return;
+        const points = data.map(toPosition);
+        setTrail((prev) => mergeTrail(prev, points));
+      })
+      .catch((err) => {
+        if (!cancelled) console.warn("Spur konnte nicht vorbefüllt werden:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let timer;
@@ -39,23 +122,10 @@ export default function Home() {
     // setTimeout statt setInterval: Der nächste Abruf startet erst, wenn der vorige fertig ist.
     async function poll() {
       try {
-        const response = await fetch(API_URL, {
-          cache: "no-store",
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (!Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) {
-          throw new Error("Unerwartete Antwort");
-        }
+        const current = toPosition(await fetchJson(API_URL));
         if (cancelled) return;
-        setPosition({
-          latitude: data.latitude,
-          longitude: data.longitude,
-          altitude: data.altitude,
-          velocity: data.velocity,
-          timestamp: data.timestamp * 1000,
-        });
+        setPosition(current);
+        setTrail((prev) => mergeTrail(prev, [current]));
         setError(null);
       } catch (err) {
         if (cancelled) return;
@@ -101,7 +171,12 @@ export default function Home() {
       </section>
 
       <div className="map-wrapper">
-        <IssMap position={position} />
+        <IssMap
+          position={position}
+          trail={trail}
+          showTrail={showTrail}
+          onShowTrailChange={handleShowTrailChange}
+        />
       </div>
 
       <footer className="footer">
