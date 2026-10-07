@@ -47,6 +47,8 @@ Es gibt keinen Linter und keine automatisierten Tests. Die manuelle Testanleitun
 
 ## Testen im Browser (Playwright)
 
+Für Regressionstests und Abnahmen den Subagent **`browser-tester`** (`.claude/agents/browser-tester.md`) nutzen. Er kennt die Regeln unten, arbeitet die Testtabelle aus `README.md` ab und liefert nur eine Ergebnistabelle zurück. So bleibt der Hauptkontext frei von Testskripten und Screenshots. Beispiel: „browser-tester: B6 lokal prüfen“.
+
 - **Testdaten statt echter API:** `page.route` für `**/satellites/25544/positions**`, `/satellites\/25544(\?|$)/` und `**/v1/coordinates/**`. Damit lassen sich Datumsgrenze, Land und Meer, Countdown und Fehler gezielt erzeugen und das Anfragelimit schonen. Den API-Ausfall mit `page.route('**/api.wheretheiss.at/**', r => r.abort())` simulieren.
 - **Eigene Browser-Kontexte** immer in `try/finally` schließen. Verwaiste Kontexte pollen weiter, verbrauchen das Limit und werfen alte Route-Handler-Fehler in spätere Läufe. Keinen Tab mit echten Daten nebenher laufen lassen.
 - Den Hinweis über `.notice` ansprechen, nicht über `[role=alert]`, denn den hat auch der Route-Announcer von Next.js. In Skripten keine Variable `URL` nennen, sonst ist der `URL`-Konstruktor verdeckt.
