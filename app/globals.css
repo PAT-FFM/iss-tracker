@@ -73,7 +73,7 @@ a {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr) 1.4fr;
   gap: 8px;
 }
 
@@ -98,7 +98,45 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.stat-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.stat-button {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stat-button:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.stat-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .map-wrapper {
+  position: relative;
   flex: 1;
   min-height: 380px;
   border: 1px solid var(--border);
@@ -106,11 +144,11 @@ a {
   overflow: hidden;
 }
 
+/* Absolut statt height: 100%, weil die Höhe des Flex-Elements nicht als feste Höhe gilt. */
 .map,
 .map-placeholder {
-  width: 100%;
-  height: 100%;
-  min-height: 380px;
+  position: absolute;
+  inset: 0;
 }
 
 .map-placeholder {
@@ -125,6 +163,13 @@ a {
   line-height: 36px;
   text-align: center;
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+}
+
+.user-icon {
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Schalter-Kasten in der Karte: bleibt hell wie die Kartenkacheln, auch im Dark Mode. */
@@ -151,6 +196,16 @@ a {
 .footer {
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stat-distance {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {

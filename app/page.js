@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { distanceToIssKm } from "./geo";
 
 const API_URL = "https://api.wheretheiss.at/v1/satellites/25544";
 const POLL_INTERVAL_MS = 5000;
@@ -12,6 +13,9 @@ const TRAIL_DURATION_MS = 10 * 60 * 1000;
 const PREFILL_POINTS = 10;
 const SHOW_TRAIL_KEY = "iss-tracker:showTrail";
 
+// Eigener Standort (B5): einmalige Abfrage, wird weder gespeichert noch gesendet.
+const GEOLOCATION_OPTIONS = { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 };
+
 // Leaflet greift beim Import auf `window` zu und darf deshalb nur im Browser geladen werden.
 const IssMap = dynamic(() => import("./IssMap"), {
   ssr: false,
@@ -21,16 +25,23 @@ const IssMap = dynamic(() => import("./IssMap"), {
 const numberFormat = (digits) =>
   new Intl.NumberFormat("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 const coordFormat = numberFormat(4);
+// Eigener Standort nur auf ca. 1 km genau anzeigen, damit Screenshots den Wohnort nicht verraten.
+const userCoordFormat = numberFormat(2);
 const altitudeFormat = numberFormat(1);
 const velocityFormat = numberFormat(0);
+const distanceFormat = numberFormat(0);
 const timeFormat = new Intl.DateTimeFormat("de-DE", { timeStyle: "medium" });
 
-function formatLatitude(lat) {
-  return `${coordFormat.format(Math.abs(lat))}° ${lat >= 0 ? "N" : "S"}`;
+function formatLatitude(lat, format = coordFormat) {
+  return `${format.format(Math.abs(lat))}° ${lat >= 0 ? "N" : "S"}`;
 }
 
-function formatLongitude(lon) {
-  return `${coordFormat.format(Math.abs(lon))}° ${lon >= 0 ? "O" : "W"}`;
+function formatLongitude(lon, format = coordFormat) {
+  return `${format.format(Math.abs(lon))}° ${lon >= 0 ? "O" : "W"}`;
+}
+
+function formatUserLocation(location) {
+  return `${formatLatitude(location.latitude, userCoordFormat)}, ${formatLongitude(location.longitude, userCoordFormat)}`;
 }
 
 function toPosition(data) {
@@ -81,6 +92,36 @@ export default function Home() {
   const [showTrail, setShowTrail] = useState(() =>
     typeof window === "undefined" ? true : readShowTrail(),
   );
+
+  // Abfragestatus: idle | locating | ready | denied | unavailable | unsupported
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle");
+
+  useEffect(() => {
+    // Geolocation gibt es nur in einem sicheren Kontext (HTTPS oder localhost).
+    if (!window.isSecureContext || !("geolocation" in navigator)) setLocationStatus("unsupported");
+  }, []);
+
+  // `fresh`: Beim Aktualisieren keine zwischengespeicherte Position des Browsers verwenden.
+  function requestLocation({ fresh = false } = {}) {
+    setLocationStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (result) => {
+        setUserLocation({
+          latitude: result.coords.latitude,
+          longitude: result.coords.longitude,
+          accuracy: result.coords.accuracy,
+        });
+        setLocationStatus("ready");
+      },
+      (err) => {
+        setLocationStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
+      },
+      fresh ? { ...GEOLOCATION_OPTIONS, maximumAge: 0 } : GEOLOCATION_OPTIONS,
+    );
+  }
+
+  const distanceKm = position && userLocation ? distanceToIssKm(userLocation, position) : null;
 
   function handleShowTrailChange(value) {
     setShowTrail(value);
@@ -168,6 +209,12 @@ export default function Home() {
           label="Geschwindigkeit"
           value={position && `${velocityFormat.format(position.velocity)} km/h`}
         />
+        <DistanceStat
+          status={locationStatus}
+          distanceKm={distanceKm}
+          userLocation={userLocation}
+          onRequest={requestLocation}
+        />
       </section>
 
       <div className="map-wrapper">
@@ -176,6 +223,8 @@ export default function Home() {
           trail={trail}
           showTrail={showTrail}
           onShowTrailChange={handleShowTrailChange}
+          userLocation={userLocation}
+          userLocationLabel={userLocation && formatUserLocation(userLocation)}
         />
       </div>
 
@@ -194,6 +243,53 @@ function Stat({ label, value }) {
     <div className="stat">
       <span className="stat-label">{label}</span>
       <span className="stat-value">{value ?? "–"}</span>
+    </div>
+  );
+}
+
+function DistanceStat({ status, distanceKm, userLocation, onRequest }) {
+  let content;
+  if (status === "unsupported") {
+    content = <span className="stat-hint">Im Browser nicht verfügbar</span>;
+  } else if (status === "locating") {
+    content = (
+      <button type="button" className="stat-button" disabled>
+        Standort wird ermittelt …
+      </button>
+    );
+  } else if (status === "ready") {
+    content = (
+      <>
+        <span className="stat-value">
+          {distanceKm == null ? "–" : `${distanceFormat.format(distanceKm)} km`}
+        </span>
+        <span className="stat-hint">
+          Dein Standort: {formatUserLocation(userLocation)} ·{" "}
+          <button type="button" className="link-button" onClick={() => onRequest({ fresh: true })}>
+            Standort aktualisieren
+          </button>
+        </span>
+      </>
+    );
+  } else {
+    const message = {
+      denied: "Standortzugriff abgelehnt. Du kannst ihn in den Website-Einstellungen des Browsers erlauben.",
+      unavailable: "Standort nicht verfügbar.",
+    }[status];
+    content = (
+      <>
+        <button type="button" className="stat-button" onClick={() => onRequest()}>
+          {status === "unavailable" ? "Erneut versuchen" : "Mein Standort"}
+        </button>
+        {message && <span className="stat-hint" role="status">{message}</span>}
+      </>
+    );
+  }
+
+  return (
+    <div className="stat stat-distance">
+      <span className="stat-label">Entfernung zur ISS</span>
+      {content}
     </div>
   );
 }

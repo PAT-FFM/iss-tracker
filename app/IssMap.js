@@ -11,6 +11,14 @@ const issIcon = L.divIcon({
   iconAnchor: [18, 18],
 });
 
+const userIcon = L.divIcon({
+  className: "user-icon",
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+const USER_LINK_COLOR = "#2563eb";
+
 const TRAIL_COLOR = "#c15d38";
 const TRAIL_WEIGHT = 3;
 // Verblassen (P1-1): Die Spur wird in Altersstufen geteilt, die neueste ist voll deckend.
@@ -76,7 +84,14 @@ function createTogglesControl(onShowTrailChange) {
   return control;
 }
 
-export default function IssMap({ position, trail, showTrail, onShowTrailChange }) {
+export default function IssMap({
+  position,
+  trail,
+  showTrail,
+  onShowTrailChange,
+  userLocation,
+  userLocationLabel,
+}) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -85,14 +100,17 @@ export default function IssMap({ position, trail, showTrail, onShowTrailChange }
   const togglesRef = useRef(null);
   const onShowTrailChangeRef = useRef(onShowTrailChange);
   onShowTrailChangeRef.current = onShowTrailChange;
-  const dataRef = useRef({ position, trail });
-  dataRef.current = { position, trail };
+  const userMarkerRef = useRef(null);
+  const userLinkRef = useRef(null);
+  const fittedLocationRef = useRef(null);
+  const dataRef = useRef({ position, trail, userLocation, userLocationLabel });
+  dataRef.current = { position, trail, userLocation, userLocationLabel };
 
   // Zeichnet Marker und Spur in der Weltkopie, die der Kartenmitte am nächsten liegt.
   const drawRef = useRef(() => {});
   drawRef.current = () => {
     const map = mapRef.current;
-    const { position, trail } = dataRef.current;
+    const { position, trail, userLocation, userLocationLabel } = dataRef.current;
     if (!map || !position) return;
 
     const isFirst = !markerRef.current;
@@ -100,7 +118,12 @@ export default function IssMap({ position, trail, showTrail, onShowTrailChange }
     const latLng = [position.latitude, wrapNear(position.longitude, reference)];
 
     if (isFirst) {
-      markerRef.current = L.marker(latLng, { icon: issIcon, title: "ISS", keyboard: false }).addTo(map);
+      markerRef.current = L.marker(latLng, {
+        icon: issIcon,
+        title: "ISS",
+        keyboard: false,
+        zIndexOffset: 1000, // immer über dem Nutzer-Marker
+      }).addTo(map);
       map.setView(latLng, 3);
     } else {
       markerRef.current.setLatLng(latLng);
@@ -108,6 +131,33 @@ export default function IssMap({ position, trail, showTrail, onShowTrailChange }
 
     const segments = buildTrailSegments(trail, latLng[1]);
     trailLinesRef.current.forEach((line, step) => line.setLatLngs(segments[step]));
+
+    // Eigener Standort (B5): in die Weltkopie nahe der ISS legen, damit die Linie den kurzen Weg nimmt.
+    if (userLocation) {
+      const userLatLng = [userLocation.latitude, wrapNear(userLocation.longitude, latLng[1])];
+      const title = `Dein Standort (gerundet): ${userLocationLabel}`;
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng(userLatLng);
+        userMarkerRef.current.getElement()?.setAttribute("title", title);
+      } else {
+        userMarkerRef.current = L.marker(userLatLng, { icon: userIcon, title, keyboard: false }).addTo(map);
+      }
+      if (userLinkRef.current) {
+        userLinkRef.current.setLatLngs([userLatLng, latLng]);
+      } else {
+        userLinkRef.current = L.polyline([userLatLng, latLng], {
+          color: USER_LINK_COLOR,
+          weight: 2,
+          dashArray: "6 6",
+          interactive: false,
+        }).addTo(map);
+      }
+      // Einmal pro neuem Standort beide ins Bild holen, danach bewegt sich die Karte nicht mehr selbst.
+      if (fittedLocationRef.current !== userLocation) {
+        fittedLocationRef.current = userLocation;
+        map.fitBounds(L.latLngBounds([userLatLng, latLng]), { padding: [60, 60], maxZoom: 5 });
+      }
+    }
   };
 
   useEffect(() => {
@@ -143,6 +193,9 @@ export default function IssMap({ position, trail, showTrail, onShowTrailChange }
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
+      userMarkerRef.current = null;
+      userLinkRef.current = null;
+      fittedLocationRef.current = null;
       trailLayerRef.current = null;
       trailLinesRef.current = [];
       togglesRef.current = null;
@@ -151,7 +204,7 @@ export default function IssMap({ position, trail, showTrail, onShowTrailChange }
 
   useEffect(() => {
     drawRef.current();
-  }, [position, trail]);
+  }, [position, trail, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -36,6 +36,10 @@ Dann <http://localhost:3000> im Browser öffnen. Ist Port 3000 belegt, nennt Nex
 | **B1** Spur | Seite öffnen | Sofort eine orangefarbene Linie über ca. 10 Minuten, die am Marker endet und nach hinten verblasst |
 | **B1** Schalter | „Spur anzeigen“ oben rechts in der Karte ab- und anhaken, danach neu laden | Die Spur verschwindet bzw. erscheint vollständig wieder, die Karte bewegt sich dabei nicht. Der Zustand bleibt nach dem Neuladen erhalten |
 | **B1** Vorbefüllung fällt aus | DevTools → **Network** → Anfrage `positions?timestamps=…` blockieren, Seite neu laden | Kein Hinweis, Marker und Werte erscheinen normal, die Spur wächst ab dann alle 5 Sekunden |
+| **B5** kein Dialog beim Laden | Seite im Inkognito-Fenster öffnen | Der Browser fragt **nicht** nach dem Standort. Die Kachel „Entfernung zur ISS“ zeigt den Button „Mein Standort“ |
+| **B5** Entfernung | „Mein Standort“ klicken und erlauben | Entfernung in km (ändert sich alle 5 Sekunden), gerundeter Standort (2 Nachkommastellen), blauer Punkt plus gestrichelte Linie zur ISS. Die Karte zeigt einmalig beide |
+| **B5** Abgelehnt | Im Erlaubnisdialog „Blockieren“ wählen | Hinweis „Standortzugriff abgelehnt …“ in der Kachel, sonst läuft alles normal. Zum Zurücksetzen auf das Schloss-Symbol in der Adressleiste klicken → Standort erlauben |
+| **B5** Anderer Ort | DevTools → ⋮ → **More tools** → **Sensors** → Location z. B. „Tokyo“ wählen, dann „Standort aktualisieren“ klicken | Standort, Entfernung, Marker und Linie springen zum neuen Ort |
 | HTTPS / Mixed Content | DevTools → **Console** | Kein Mixed-Content-Fehler. Im Tab **Network** laufen alle Anfragen über `https://` (außer `localhost` selbst) |
 
 Während eines simulierten Ausfalls sind Fehlermeldungen in der Konsole normal (fehlgeschlagene Anfrage und die Warnung „ISS-Position konnte nicht geladen werden“).

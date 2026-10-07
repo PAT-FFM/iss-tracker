@@ -2,6 +2,23 @@
 
 Bonus-Anforderung B1 aus [`../PRD.md`](../PRD.md). Status: **Umgesetzt** am 07.10.2026 (P0, P1-1 und P1-2). Code: `app/page.js` (Zustand, Vorbefüllung) und `app/IssMap.js` (Darstellung, Schalter).
 
+## Umsetzungsstand
+
+| ID | Anforderung | Status | Nachweis |
+|---|---|---|---|
+| P0-1 | Live-Spur | ✅ Umgesetzt | Playwright lokal und live, Dark Mode per Screenshot |
+| P0-2 | Begrenzung auf 10 Minuten | ✅ Umgesetzt | Playwright mit Testdaten (Zeitsprünge), Sortierung und Dubletten per Code-Review |
+| P0-3 | Vorbefüllung beim Start | ✅ Umgesetzt | Playwright, auch mit blockierter Vorbefüllung |
+| P0-4 | Datumsgrenze | ✅ Umgesetzt | Playwright mit Testdaten über 180°, Verschieben um eine Weltbreite |
+| P0-5 | Ein/Aus-Schalter | ✅ Umgesetzt | Playwright, auch per Tastatur |
+| P0-6 | Robustheit | ✅ Umgesetzt | Playwright mit simuliertem API-Ausfall |
+| P1-1 | Verblassende Spur | ✅ Umgesetzt | 5 Deckkraftstufen 1,0–0,2 |
+| P1-2 | Schalterzustand merken | ✅ Umgesetzt | Playwright, auch mit gesperrtem localStorage |
+| P2-1 | Einstellbare Spurlänge | ⏳ Offen | Vorbereitet: eine Konstante `TRAIL_DURATION_MS` |
+| P2-2 | Einfärbung nach `visibility` | ⏳ Offen | Vorbereitet: ganze Positionsobjekte inkl. `visibility` in der Spur |
+
+Alle Abnahmekriterien unten sind geprüft (Stand 07.10.2026).
+
 ## Problem
 
 Der Marker zeigt nur, *wo* die ISS gerade ist, nicht *wohin* sie fliegt. Bei 5 Sekunden Polling bewegt er sich in Zoomstufe 3 nur wenige Pixel pro Schritt. Flugrichtung und Bahnform (Sinuskurve auf der Karte) sind deshalb kaum zu erkennen. Wer die Seite neu öffnet, sieht außerdem nur einen einzelnen Punkt.
@@ -34,44 +51,44 @@ Der Marker zeigt nur, *wo* die ISS gerade ist, nicht *wohin* sie fliegt. Bei 5 S
 ### Muss (P0)
 
 **P0-1: Live-Spur.** Jede erfolgreich abgerufene Position wird an die Spur angehängt. Die Spur ist eine Linie auf der Karte, die am aktuellen Marker endet. Aussehen: **orange `#c15d38`** (Akzentfarbe aus Hinweisbanner und Favicon), **3 px**, durchgezogen.
-- [ ] Nach jedem Polling-Schritt endet die Linie an der neuen Markerposition.
-- [ ] Die Linie liegt unter dem Marker und verdeckt ihn nicht.
-- [ ] Die Linie ist auf Land und Meer gut erkennbar, auch im Dark Mode (die Kartenkacheln bleiben dort hell).
+- [x] Nach jedem Polling-Schritt endet die Linie an der neuen Markerposition.
+- [x] Die Linie liegt unter dem Marker und verdeckt ihn nicht.
+- [x] Die Linie ist auf Land und Meer gut erkennbar, auch im Dark Mode (die Kartenkacheln bleiben dort hell).
 
 **P0-2: Begrenzung auf 10 Minuten.** Punkte, deren API-`timestamp` älter als 10 Minuten ist, fallen heraus. Maßgeblich ist der Zeitstempel, nicht die Anzahl der Punkte. So bleibt die Spurlänge auch nach Lücken im Polling korrekt.
-- [ ] Nach 15 Minuten Laufzeit reicht die Spur nur 10 Minuten zurück.
-- [ ] Die Anzahl der gehaltenen Punkte bleibt begrenzt (bei 5-s-Polling ca. 120 plus Vorbefüllung), der Speicher wächst nicht unbegrenzt.
+- [x] Nach 15 Minuten Laufzeit reicht die Spur nur 10 Minuten zurück.
+- [x] Die Anzahl der gehaltenen Punkte bleibt begrenzt (bei 5-s-Polling ca. 120 plus Vorbefüllung), der Speicher wächst nicht unbegrenzt.
 
 **P0-3: Vorbefüllung beim Start.** Beim Laden wird **einmalig** `GET https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps=<t1,…,tn>&units=kilometers` mit Zeitstempeln der letzten 10 Minuten abgefragt, z. B. 10 Stück im Abstand von ca. 60 s. Die Antwort bildet den Anfang der Spur.
-- [ ] Spätestens wenn der Marker zum ersten Mal erscheint, ist eine Linie über ca. 10 Minuten sichtbar.
-- [ ] Schlägt die Vorbefüllung fehl, startet die Spur leer und wächst normal weiter. Es gibt **keinen** eigenen Fehlerhinweis und keinen erneuten Versuch.
-- [ ] Die Vorbefüllung verzögert weder die erste Positionsanzeige noch das Polling (beides läuft parallel).
-- [ ] Die Punkte aus Vorbefüllung und Polling sind nach `timestamp` sortiert, doppelte Zeitstempel kommen nur einmal vor.
+- [x] Spätestens wenn der Marker zum ersten Mal erscheint, ist eine Linie über ca. 10 Minuten sichtbar.
+- [x] Schlägt die Vorbefüllung fehl, startet die Spur leer und wächst normal weiter. Es gibt **keinen** eigenen Fehlerhinweis und keinen erneuten Versuch.
+- [x] Die Vorbefüllung verzögert weder die erste Positionsanzeige noch das Polling (beides läuft parallel).
+- [x] Die Punkte aus Vorbefüllung und Polling sind nach `timestamp` sortiert, doppelte Zeitstempel kommen nur einmal vor.
 
 **P0-4: Datumsgrenze.** Die Längen der Spur werden vom neuesten Punkt aus fortlaufend gemacht (±360°). Marker und Spur werden in der Weltkopie gezeichnet, die der Kartenmitte am nächsten liegt. Leaflet zeichnet Längen über ±180° in der Nachbarkopie. So bleibt die Spur am Marker, statt am anderen Kartenende zu erscheinen.
-- [ ] Beim Überflug über 180° O/W erscheint keine waagerechte Linie quer über die Weltkarte.
-- [ ] Marker und Spur bleiben beim Überflug zusammenhängend im Bild, der Marker springt nicht ans andere Kartenende.
-- [ ] Nach dem Verschieben der Karte um eine ganze Weltbreite sind Marker und Spur wieder gemeinsam zu sehen.
+- [x] Beim Überflug über 180° O/W erscheint keine waagerechte Linie quer über die Weltkarte.
+- [x] Marker und Spur bleiben beim Überflug zusammenhängend im Bild, der Marker springt nicht ans andere Kartenende.
+- [x] Nach dem Verschieben der Karte um eine ganze Weltbreite sind Marker und Spur wieder gemeinsam zu sehen.
 
 **P0-5: Ein/Aus-Schalter.** Eine Checkbox „Spur anzeigen“ blendet die Spur ein und aus. Standard ist **an**. Sie sitzt in einem **Leaflet-Control oben rechts in der Karte**. Das Control ist als Kasten für mehrere Schalter angelegt, B2 kommt später als zweite Zeile „Karte folgt“ dazu.
-- [ ] Ist der Schalter aus, ist keine Linie zu sehen. Die Punkte werden trotzdem weiter gesammelt.
-- [ ] Klicks auf das Control verschieben oder zoomen die Karte nicht (`L.DomEvent.disableClickPropagation`).
-- [ ] Beim Wiedereinschalten ist sofort die vollständige Spur der letzten 10 Minuten da.
-- [ ] Der Schalter ist per Tastatur bedienbar und hat ein sichtbares Label.
+- [x] Ist der Schalter aus, ist keine Linie zu sehen. Die Punkte werden trotzdem weiter gesammelt.
+- [x] Klicks auf das Control verschieben oder zoomen die Karte nicht (`L.DomEvent.disableClickPropagation`).
+- [x] Beim Wiedereinschalten ist sofort die vollständige Spur der letzten 10 Minuten da.
+- [x] Der Schalter ist per Tastatur bedienbar und hat ein sichtbares Label.
 
 **P0-6: Robustheit.** Bei API-Ausfall bleibt die bisherige Spur stehen. Fehlgeschlagene Abrufe fügen keine Punkte hinzu. Nach der Erholung läuft die Spur weiter. Die Lücke wird mit einer geraden Linie überbrückt, was akzeptiert ist.
-- [ ] Die Prüfungen zu F4 aus `README.md` → „Lokal testen“ laufen weiterhin durch.
-- [ ] Die Konsole zeigt keine neuen Fehler, auch keine Mixed-Content-Fehler. Die neue Anfrage läuft über HTTPS.
+- [x] Die Prüfungen zu F4 aus `README.md` → „Lokal testen“ laufen weiterhin durch.
+- [x] Die Konsole zeigt keine neuen Fehler, auch keine Mixed-Content-Fehler. Die neue Anfrage läuft über HTTPS.
 
 ### Sollte (P1), wird im ersten Schritt mit umgesetzt
 
 **P1-1: Verblassende Spur.** Ältere Abschnitte werden transparenter, damit die Flugrichtung noch deutlicher wird. Umsetzung z. B. als einige Teilstücke mit gestaffelter Deckkraft (`opacity`), nicht als eigene Polyline pro Punktepaar.
-- [ ] Der neueste Abschnitt am Marker ist voll deckend, der älteste deutlich blasser (z. B. Deckkraft 0,2), dazwischen nimmt sie gleichmäßig ab.
-- [ ] Das Verblassen funktioniert auch über die Datumsgrenze hinweg (P0-4).
+- [x] Der neueste Abschnitt am Marker ist voll deckend, der älteste deutlich blasser (z. B. Deckkraft 0,2), dazwischen nimmt sie gleichmäßig ab.
+- [x] Das Verblassen funktioniert auch über die Datumsgrenze hinweg (P0-4).
 
 **P1-2: Schalterzustand merken.** Der Zustand des Schalters wird in `localStorage` gespeichert. Lesen und Schreiben in `try/catch`, damit es im privaten Modus nicht bricht.
-- [ ] Nach dem Ausschalten und Neuladen bleibt die Spur ausgeblendet.
-- [ ] Ist `localStorage` nicht verfügbar, gilt der Standard „an“, ohne Fehler in der Konsole.
+- [x] Nach dem Ausschalten und Neuladen bleibt die Spur ausgeblendet.
+- [x] Ist `localStorage` nicht verfügbar, gilt der Standard „an“, ohne Fehler in der Konsole.
 
 ### Später (P2)
 

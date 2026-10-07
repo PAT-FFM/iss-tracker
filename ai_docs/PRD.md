@@ -33,12 +33,13 @@ Lernende der Übung, die den Ablauf Planen → Bauen → Testen → Deployen ein
 
 ### Bonus (optional, falls früher fertig)
 
-| ID | Anforderung | Hinweis |
-|---|---|---|
-| B1 | Spur der letzten Positionen als Linie. | |
-| B2 | Karte folgt der ISS, per Ein/Aus-Schalter. | |
-| B3 | Tag/Nacht-Anzeige über das Feld `visibility`. | |
-| B4 | Astronauten-Liste aus `astros.json`. | Schwerste Aufgabe: Die Quelle ist HTTP, daher wird ein Proxy benötigt (Tipp: Vercel Function). Das widerspricht dem Muss-Scope "kein Backend" nur für diese Bonus-Aufgabe. |
+| ID | Anforderung | Hinweis | Status |
+|---|---|---|---|
+| B1 | Spur der letzten Positionen als Linie. | Spur der letzten 10 Minuten, beim Laden vorbefüllt, verblassend, per Schalter ein-/ausblendbar. Details: [Feature-Spec B1](features/B1_spur-der-letzten-positionen.md) | ✅ Umgesetzt (07.10.2026): P0 ✅ · P1 ✅ · P2 offen |
+| B2 | Karte folgt der ISS, per Ein/Aus-Schalter. | Schalter gehört in den Schalter-Kasten oben rechts in der Karte (aus B1). | Offen |
+| B3 | Tag/Nacht-Anzeige über das Feld `visibility`. | | Offen |
+| B4 | Astronauten-Liste aus `astros.json`. | Schwerste Aufgabe: Die Quelle ist HTTP, daher wird ein Proxy benötigt (Tipp: Vercel Function). Das widerspricht dem Muss-Scope "kein Backend" nur für diese Bonus-Aufgabe. | Offen |
+| B5 | Aktuelle Position des Benutzeres und Entfernung zur ISS | Über die Browser geolocation die aktuelle Position ermitteln und eintragen, zusätzlich die Entfernung zur ISS ermitteln und anzeigen. Details: [Feature-Spec B5](features/B5_eigener-standort-und-entfernung.md) | ✅ Umgesetzt (07.10.2026): P0 ✅ · P1 ✅ · P2 offen |
 
 ## 5. Nicht-funktionale Anforderungen und Einschränkungen
 
