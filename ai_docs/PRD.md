@@ -27,7 +27,7 @@ Lernende der Übung, die den Ablauf Planen → Bauen → Testen → Deployen ein
 | ID | Anforderung | Priorität |
 |---|---|---|
 | F1 | Karte mit Leaflet, auf der ein ISS-Marker die aktuelle Position zeigt. | Muss |
-| F2 | Anzeige von Breite, Länge, Höhe und Geschwindigkeit. | Muss |
+| F2 | Anzeige von Breite, Länge, Höhe (km) und Geschwindigkeit (km/h).  | Muss |
 | F3 | Position wird automatisch alle ca. 5 Sekunden aktualisiert; der Marker bewegt sich entsprechend. | Muss |
 | F4 | Ist die API nicht erreichbar, erscheint ein verständlicher Hinweis statt einer leeren Seite. | Muss |
 
