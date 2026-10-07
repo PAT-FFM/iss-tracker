@@ -1,8 +1,10 @@
 # Feature-Spec B5: Eigener Standort und Entfernung zur ISS
 
-Bonus-Anforderung B5 aus [`../PRD.md`](../PRD.md). Status: **Umgesetzt** am 07.10.2026 (P0, P1-1 und P1-2), lokal und live getestet, deployt. Code: `app/geo.js` (Rechnung), `app/page.js` (Abfrage, Kachel) und `app/IssMap.js` (Marker, Linie).
+Bonus-Anforderung B5 aus [`../PRD.md`](../PRD.md). Code: `app/geo.js` (Rechnung), `app/page.js` (Abfrage, Kachel) und `app/IssMap.js` (Marker, Linie).
 
 ## Umsetzungsstand
+
+Stand: 07.10.2026
 
 | ID | Anforderung | Status | Nachweis |
 |---|---|---|---|
@@ -17,7 +19,7 @@ Bonus-Anforderung B5 aus [`../PRD.md`](../PRD.md). Status: **Umgesetzt** am 07.1
 | P2-2 | Mitlaufen per `watchPosition` | ⏳ Offen | |
 | P2-3 | Schalter „Standort anzeigen“ | ⏳ Offen | |
 
-Alle Abnahmekriterien unten sind lokal geprüft, die Kernfunktionen zusätzlich unter der Live-URL in einer frischen Browser-Sitzung (Stand 07.10.2026).
+Alle Abnahmekriterien der umgesetzten Punkte sind lokal geprüft, die Kernfunktionen zusätzlich unter der Live-URL in einer frischen Browser-Sitzung.
 
 ## Problem
 
@@ -52,38 +54,38 @@ Die App zeigt, wo die ISS ist, aber nicht, was das für den Besucher bedeutet. Z
 ### Muss (P0)
 
 **P0-1: Standort per Klick.** Eine fünfte Kachel „Entfernung zur ISS“ in der Messwerte-Leiste zeigt anfangs einen Button **„Mein Standort“**. Erst der Klick löst `navigator.geolocation.getCurrentPosition` aus (einmalig, `enableHighAccuracy: false`, `timeout: 10000`, `maximumAge: 300000`). *Platz in der Messwerte-Leiste: Vorschlag, siehe Entscheidungen.*
-- [x] Beim Laden der Seite erscheint **kein** Erlaubnisdialog.
-- [x] Nach dem Klick und der Freigabe steht innerhalb weniger Sekunden eine Entfernung in der Kachel.
-- [x] Während der Abfrage zeigt die Kachel „Standort wird ermittelt …“, und der Button ist deaktiviert.
+- Beim Laden der Seite erscheint **kein** Erlaubnisdialog.
+- Nach dem Klick und der Freigabe steht innerhalb weniger Sekunden eine Entfernung in der Kachel.
+- Während der Abfrage zeigt die Kachel „Standort wird ermittelt …“, und der Button ist deaktiviert.
 
 **P0-2: Direkte Entfernung.** Angezeigt wird die **Luftlinie im Raum** zwischen Nutzer (Erdoberfläche) und ISS (Erdradius + `altitude`). Gerechnet wird mit einer Kugel-Erde (R = 6.371 km): `d = √(r₁² + r₂² − 2·r₁·r₂·cos γ)`, γ ist der Mittelpunktswinkel aus beiden Koordinaten (Haversine). Format wie die übrigen Werte: `de-DE`, ganze km, z. B. „2.315 km“.
-- [x] Die Entfernung ändert sich mit jedem Polling-Schritt.
-- [x] Liegt der Nutzer genau unter der ISS, ist die Entfernung gleich der Höhe (ca. 420 km). Prüfbar mit Testdaten.
-- [x] Liegt der Nutzer auf der gegenüberliegenden Seite der Erde, ist die Entfernung ca. 13.160 km (2 · 6.371 + 420). Prüfbar mit Testdaten.
-- [x] Die Abweichung der Kugelrechnung (< 0,5 %) ist akzeptiert.
+- Die Entfernung ändert sich mit jedem Polling-Schritt.
+- Liegt der Nutzer genau unter der ISS, ist die Entfernung gleich der Höhe (ca. 420 km). Prüfbar mit Testdaten.
+- Liegt der Nutzer auf der gegenüberliegenden Seite der Erde, ist die Entfernung ca. 13.160 km (2 · 6.371 + 420). Prüfbar mit Testdaten.
+- Die Abweichung der Kugelrechnung (< 0,5 %) ist akzeptiert.
 
 **P0-3: Standort auf der Karte.** Nach der Freigabe erscheint ein eigener Marker (blauer Punkt, `L.divIcon` wie beim ISS-Marker) und eine **gestrichelte Verbindungslinie** zur ISS, die bei jedem Polling-Schritt mitwandert.
-- [x] Marker und Linie erscheinen erst nach erfolgreicher Freigabe.
-- [x] Die Linie nimmt den kürzeren Weg, auch über die Datumsgrenze. Beide Enden werden wie in B1 per `wrapNear` in die Weltkopie nahe der Kartenmitte gelegt.
-- [x] Linie und Nutzer-Marker verdecken den ISS-Marker nicht. Die Linie hebt sich von der orangefarbenen B1-Spur ab (andere Farbe, gestrichelt).
+- Marker und Linie erscheinen erst nach erfolgreicher Freigabe.
+- Die Linie nimmt den kürzeren Weg, auch über die Datumsgrenze. Beide Enden werden wie in B1 per `wrapNear` in die Weltkopie nahe der Kartenmitte gelegt.
+- Linie und Nutzer-Marker verdecken den ISS-Marker nicht. Die Linie hebt sich von der orangefarbenen B1-Spur ab (andere Farbe, gestrichelt).
 
 **P0-4: Fehlerfälle.** Jeder Fehler erscheint verständlich in der Kachel. Der Rest der App läuft weiter, und es gibt kein Banner (das ist für API-Ausfälle reserviert).
-- [x] **Abgelehnt** (`PERMISSION_DENIED`): „Standortzugriff abgelehnt. Du kannst ihn in den Website-Einstellungen des Browsers erlauben.“ Der Button bleibt für einen neuen Versuch sichtbar.
-- [x] **Nicht ermittelbar oder Zeitüberschreitung**: „Standort nicht verfügbar“ mit Button „Erneut versuchen“.
-- [x] **Keine Geolocation im Browser** (oder kein sicherer Kontext): Die Kachel zeigt „Im Browser nicht verfügbar“ ohne Button.
-- [x] Bei einem ISS-API-Ausfall (F4) bleibt die zuletzt berechnete Entfernung stehen und erholt sich mit den Positionsdaten.
+- **Abgelehnt** (`PERMISSION_DENIED`): „Standortzugriff abgelehnt. Du kannst ihn in den Website-Einstellungen des Browsers erlauben.“ Der Button bleibt für einen neuen Versuch sichtbar.
+- **Nicht ermittelbar oder Zeitüberschreitung**: „Standort nicht verfügbar“ mit Button „Erneut versuchen“.
+- **Keine Geolocation im Browser** (oder kein sicherer Kontext): Die Kachel zeigt „Im Browser nicht verfügbar“ ohne Button.
+- Bei einem ISS-API-Ausfall (F4) bleibt die zuletzt berechnete Entfernung stehen und erholt sich mit den Positionsdaten.
 
 **P0-5: Datenschutz.**
-- [x] Der Standort wird **nicht** gespeichert und an niemanden gesendet. Im Network-Tab gibt es keine neue Anfrage, die Koordinaten enthält.
-- [x] Der eigene Standort wird in der Oberfläche auf **2 Nachkommastellen** (ca. 1 km) gerundet angezeigt, z. B. im Tooltip des Markers. Gerechnet wird intern mit dem genauen Wert.
+- Der Standort wird **nicht** gespeichert und an niemanden gesendet. Im Network-Tab gibt es keine neue Anfrage, die Koordinaten enthält.
+- Der eigene Standort wird in der Oberfläche auf **2 Nachkommastellen** (ca. 1 km) gerundet angezeigt, z. B. im Tooltip des Markers. Gerechnet wird intern mit dem genauen Wert.
 
 ### Sollte (P1)
 
 **P1-1: Beide im Bild.** Direkt nach der Freigabe wird der Kartenausschnitt **einmalig** so gewählt, dass Nutzer und ISS sichtbar sind (`fitBounds` mit Rand, höchstens Zoom 5). Danach bewegt sich die Karte nicht mehr von selbst.
-- [x] Nutzer und ISS sind nach der Freigabe beide sichtbar, ohne dass man scrollen oder zoomen muss.
+- Nutzer und ISS sind nach der Freigabe beide sichtbar, ohne dass man scrollen oder zoomen muss.
 
 **P1-2: Standort aktualisieren.** Nach erfolgreicher Freigabe zeigt die Kachel einen kleinen Link „Standort aktualisieren“, der die Abfrage wiederholt. Dabei gilt `maximumAge: 0`, sonst liefert der Browser bis zu 5 Minuten lang die zwischengespeicherte alte Position.
-- [x] Nach einem Ortswechsel und Klick auf „Standort aktualisieren“ erscheinen der neue Standort und die neue Entfernung.
+- Nach einem Ortswechsel und Klick auf „Standort aktualisieren“ erscheinen der neue Standort und die neue Entfernung.
 
 ### Später (P2)
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ISS-Live-Tracker als Übung im Bildungsurlaub **Agentic Coding** (Oktober 2026): eine reine Frontend-App, die die ISS live auf einer Leaflet-Karte zeigt und öffentlich per HTTPS deployt wird. Maßgeblich ist `ai_docs/PRD.md` (Anforderungen F1–F4, Bonus B1–B4, Akzeptanzkriterien), die Original-Aufgabe liegt in `ai_docs/Uebung_ISS-Tracker.pdf`. Vor Änderungen die PRD lesen.
 
-Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 sowie die Bonus-Aufgaben B1, B5 und B6 sind umgesetzt. Feature-Specs liegen in `ai_docs/features/`. Neue Features dort zuerst spezifizieren.
+Stack: Next.js 16 (App Router, Turbopack), React 19, Leaflet ohne `react-leaflet`, reines JavaScript (kein TypeScript). Die Pflichtanforderungen F1–F4 sowie die Bonus-Aufgaben B1, B5 und B6 sind umgesetzt. Der aktuelle Stand steht in der PRD bzw. in den Feature-Specs (siehe „Anforderungen dokumentieren“).
 
 ## Befehle
 
@@ -18,6 +18,13 @@ npm start         # Produktions-Build lokal ausliefern
 ```
 
 Es gibt keinen Linter und keine automatisierten Tests. Die manuelle Testanleitung (F1–F4, API-Ausfall per DevTools simulieren) steht in `README.md` unter „Lokal testen“. Für automatisierte Browserprüfungen per Playwright den API-Ausfall mit `page.route('**/api.wheretheiss.at/**', r => r.abort())` simulieren. Den Hinweis über `.notice` ansprechen, nicht über `[role=alert]`, denn den hat auch der Route-Announcer von Next.js. Geolocation (B5) in einem eigenen Context simulieren: `grantPermissions(['geolocation'], { origin })` und `setGeolocation(...)`. Mit `grantPermissions([])` wird die Abfrage abgelehnt. Ganz ohne Freigabe wartet der Testbrowser endlos auf den Dialog.
+
+## Anforderungen dokumentieren
+
+- **`ai_docs/PRD.md`** enthält die Basis-Anforderungen vollständig. Für Bonus-Aufgaben gibt es nur eine Übersicht: ID, einzeilige Beschreibung, Link zur Spec und grober Status (Offen / Spezifiziert / Umgesetzt).
+- **`ai_docs/features/Bx_<kurzname>.md`** enthält alle Details einer Bonus-Aufgabe. Neue Specs nach `ai_docs/features/_VORLAGE.md` anlegen, vor der Umsetzung (z. B. mit `/product-management:write-spec`).
+- **Der Stand steht nur im Abschnitt „Umsetzungsstand“** am Anfang der Spec, mit einer Tabelle aller P0/P1/P2-Punkte und dem Nachweis. Keine Statuszeile im Kopf, keine Checkboxen bei den Abnahmekriterien, kein Status in Überschriften.
+- Nach Umsetzung oder Deploy beides nachziehen: den Umsetzungsstand der Spec **und** den groben Status in der PRD.
 
 ## Git
 

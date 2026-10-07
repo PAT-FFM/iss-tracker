@@ -1,14 +1,16 @@
 # Feature-Spec B6: Fun with Flags
 
-Bonus-Anforderung B6 aus [`../PRD.md`](../PRD.md). Status: **Umgesetzt** am 07.10.2026 (P0, P1-1 und P1-2), lokal und live getestet, deployt. Code: `app/Flag.js` (Flaggen, Ländernamen), `app/page.js` (Länderabfrage, Countdown, Länderzeile) und `app/IssMap.js` (Flagge am Marker). Entstanden aus einem Brainstorming am 07.10.2026.
+Bonus-Anforderung B6 aus [`../PRD.md`](../PRD.md). Code: `app/Flag.js` (Flaggen, Ländernamen), `app/page.js` (Länderabfrage, Countdown, Länderzeile) und `app/IssMap.js` (Flagge am Marker). Entstanden aus einem Brainstorming am 07.10.2026.
 
 ## Umsetzungsstand
 
+Stand: 07.10.2026
+
 | ID | Anforderung | Status | Nachweis |
 |---|---|---|---|
-| P0-1 | Gastlandflagge des überflogenen Landes | ✅ Umgesetzt | Playwright mit Testdaten (Australien, Wechsel Land ↔ Meer) |
+| P0-1 | Gastlandflagge des überflogenen Landes | ✅ Umgesetzt | Playwright mit Testdaten (Australien, Wechsel Land ↔ Meer). Codes ohne Flaggenbild per Code-Review: `hasFlag` gegen die Liste der 257 vorhandenen Flaggen |
 | P0-2 | Internationale Gewässer: Heimatflaggen der ISS | ✅ Umgesetzt | Playwright mit Testdaten und echten Daten (Südpazifik), 0 px Layoutsprung bei 320–1920 px |
-| P0-3 | Flaggen als Bilder, nicht als Emoji | ✅ Umgesetzt | SVG aus `flag-icons`, nur angezeigte Flaggen geladen, keine fremden Server |
+| P0-3 | Flaggen als Bilder, nicht als Emoji | ✅ Umgesetzt | SVG aus `flag-icons` (unabhängig von Systemschriften, getestet in Chromium), nur angezeigte Flaggen geladen, keine fremden Server |
 | P0-4 | Robustheit und Anfragelimit | ✅ Umgesetzt | Playwright: Länderabfrage blockiert → „(Stand: …)“, kein Banner, Polling läuft. Echte 429-Antworten abgefangen |
 | P1-1 | Countdown bis zum nächsten Gastland | ✅ Umgesetzt | Playwright mit Testdaten: „Brasilien in ca. 5 Min.“ nach 4 Abfragen, „Kein Land in den nächsten 15 Min.“ |
 | P1-2 | Flagge am ISS-Marker | ✅ Umgesetzt | Playwright: Flagge über Land, keine über dem Meer |
@@ -16,7 +18,7 @@ Bonus-Anforderung B6 aus [`../PRD.md`](../PRD.md). Status: **Umgesetzt** am 07.1
 | P2-2 | Länderwechsel als kurze Animation | ⏳ Offen | |
 | P2-3 | Zurückhaltung bei 429 (Backoff) | ⏳ Offen | Neu, siehe „Erkenntnisse aus dem Test“ |
 
-Alle P0- und P1-Abnahmekriterien unten sind lokal geprüft, der Meer-Zustand zusätzlich unter der Live-URL (Stand 07.10.2026). **Noch offen:** ein beobachteter *echter* Länderwechsel. Bei allen Tests mit echten Daten lag die ISS über dem Meer, Land wurde nur mit Testdaten geprüft.
+Alle Abnahmekriterien der umgesetzten Punkte sind lokal geprüft, der Meer-Zustand zusätzlich unter der Live-URL. **Noch offen:** ein beobachteter *echter* Länderwechsel. Bei allen Tests mit echten Daten lag die ISS über dem Meer, Land wurde nur mit Testdaten geprüft.
 
 ## Idee
 
@@ -56,30 +58,30 @@ Die Koordinaten „-25,7551° S, 144,2198° O“ sagen den meisten Besuchern nic
 ### Muss (P0)
 
 **P0-1: Gastlandflagge.** Nach jeder erfolgreich abgerufenen Position fragt die App `GET https://api.wheretheiss.at/v1/coordinates/{lat},{lon}` ab und liest `country_code` (ISO 3166-1 alpha-2). Angezeigt werden die Flagge und der deutsche Ländername, ermittelt per `new Intl.DisplayNames('de', { type: 'region' })`, ohne eigene Namensliste. **Platz:** eine eigene Zeile „Gerade über: [Flagge] Australien“ direkt unter der Überschrift, über der Messwerte-Leiste.
-- [x] Über Land erscheinen Flagge und Name, z. B. „🇦🇺 Australien“ (als Bild).
-- [x] Nach einem Grenzübertritt wechselt die Anzeige spätestens mit dem nächsten Polling-Schritt.
-- [x] Unbekannte, aber gültige Codes ohne Flaggenbild zeigen nur den Namen bzw. den Code, ohne kaputtes Bild. *(per Code-Review: `hasFlag` gegen die Liste der 257 vorhandenen Flaggen)*
+- Über Land erscheinen Flagge und Name, z. B. „🇦🇺 Australien“ (als Bild).
+- Nach einem Grenzübertritt wechselt die Anzeige spätestens mit dem nächsten Polling-Schritt.
+- Unbekannte, aber gültige Codes ohne Flaggenbild zeigen nur den Namen bzw. den Code, ohne kaputtes Bild.
 
 **P0-2: Internationale Gewässer.** Bei `country_code` `??` (oder leer) zeigt die App „Internationale Gewässer“ und die **Heimatflaggen** der ISS-Partner: die Flaggen von USA, Russland, Japan und Kanada sowie Europa als Text **„ESA“** ohne Flagge. Die EU-Flagge wäre falsch, weil die ESA keine EU-Einrichtung ist. Das entspricht der Nationalflagge, die ein Schiff immer führt.
-- [x] Mit Testdaten mitten im Atlantik (0°, −30°) erscheint „Internationale Gewässer“ mit den Partnerflaggen.
-- [x] Der Wechsel Land ↔ Meer erzeugt keine Layout-Sprünge in der Messwerte-Leiste.
+- Mit Testdaten mitten im Atlantik (0°, −30°) erscheint „Internationale Gewässer“ mit den Partnerflaggen.
+- Der Wechsel Land ↔ Meer erzeugt keine Layout-Sprünge in der Messwerte-Leiste.
 
 **P0-3: Flaggen als Bilder.** Flaggen-Emojis werden unter Windows als Buchstaben dargestellt. Deshalb kommen die Flaggen als SVG aus dem npm-Paket **`flag-icons`** und werden mit der App ausgeliefert, nicht von einem fremden Server geladen. Jede Flagge hat einen Alternativtext mit dem Ländernamen.
-- [x] Die Flaggen sind unter Windows/Chrome, macOS und Android gleich zu sehen. *(SVG statt Emoji, also unabhängig von den Systemschriften. Getestet in Chromium)*
-- [x] Im Network-Tab gibt es keine Anfragen an fremde Flaggen-Server. Nur die gerade angezeigte Flagge wird geladen, nicht alle.
-- [x] Bildschirmleser lesen den Ländernamen vor, nicht den Dateinamen.
+- Die Flaggen sind unter Windows/Chrome, macOS und Android gleich zu sehen.
+- Im Network-Tab gibt es keine Anfragen an fremde Flaggen-Server. Nur die gerade angezeigte Flagge wird geladen, nicht alle.
+- Bildschirmleser lesen den Ländernamen vor, nicht den Dateinamen.
 
 **P0-4: Robustheit und Anfragelimit.** Laut Response-Header erlaubt die API **350 Anfragen pro 5 Minuten**. Die Länderabfrage läuft **nach** der Positionsabfrage (nacheinander, nicht parallel) und nur, wenn die Position erfolgreich war. Koordinaten werden auf 2 Nachkommastellen gerundet übergeben.
-- [x] Budget im Normalbetrieb: Position 60 + Land 60 = **ca. 120 Anfragen pro 5 Minuten** (B1-Vorbefüllung einmalig).
-- [x] Schlägt die Länderabfrage fehl, bleibt die letzte Anzeige mit dem Zusatz „(Stand: hh:mm:ss)“ stehen. Es gibt keinen Banner, und das Positions-Polling läuft unverändert weiter.
-- [x] Bei einem kompletten API-Ausfall gelten die bestehenden F4-Regeln, die Flagge bleibt auf dem letzten Stand.
+- Budget im Normalbetrieb: Position 60 + Land 60 = **ca. 120 Anfragen pro 5 Minuten** (B1-Vorbefüllung einmalig).
+- Schlägt die Länderabfrage fehl, bleibt die letzte Anzeige mit dem Zusatz „(Stand: hh:mm:ss)“ stehen. Es gibt keinen Banner, und das Positions-Polling läuft unverändert weiter.
+- Bei einem kompletten API-Ausfall gelten die bestehenden F4-Regeln, die Flagge bleibt auf dem letzten Stand.
 
 ### Sollte (P1)
 
 **P1-1: Countdown bis zum nächsten Gastland.** Über dem Meer zeigt die App zusätzlich „Nächstes Gastland: [Flagge] Brasilien in ca. 4 Min.“. Dafür werden höchstens **einmal pro Minute** Positionen der nächsten 15 Minuten abgefragt (ein Aufruf von `/positions` mit 10 Zeitstempeln in der Zukunft, getestet am 07.10.2026). Für diese Positionen wird dann **nacheinander** `/coordinates` abgefragt, bis das erste Land gefunden ist.
-- [x] Die Countdown-Abfragen nutzen höchstens 60 zusätzliche Anfragen pro 5 Minuten, sodass das Gesamtbudget unter 200 von 350 bleibt.
-- [x] Liegt in den nächsten 15 Minuten kein Land, steht dort „Kein Land in den nächsten 15 Min.“.
-- [x] Die Genauigkeit liegt bei ca. ±1 Minute (Raster der Stützpunkte), angezeigt als „ca.“.
+- Die Countdown-Abfragen nutzen höchstens 60 zusätzliche Anfragen pro 5 Minuten, sodass das Gesamtbudget unter 200 von 350 bleibt.
+- Liegt in den nächsten 15 Minuten kein Land, steht dort „Kein Land in den nächsten 15 Min.“.
+- Die Genauigkeit liegt bei ca. ±1 Minute (Raster der Stützpunkte), angezeigt als „ca.“.
 
 **P1-2: Flagge am ISS-Marker.** Die aktuelle Gastlandflagge erscheint klein neben dem 🛰️-Marker auf der Karte, wie eine Flagge am Mast. Über dem Meer erscheint dort keine Flagge.
 
